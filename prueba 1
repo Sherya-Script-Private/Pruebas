@@ -328,32 +328,30 @@ Farm:AddSwitch("Auto Eat Egg 30 Minutes", function(state)
     autoEatEnabled = state
 end)
 
-Farm:AddLabel("----------")
+Opti:AddLabel("----------")
 
 Opti:AddButton("Anti Lag", function()
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
     local lighting = game:GetService("Lighting")
-    local petFolder = player:FindFirstChild("petsFolder")
 
-    -- No eliminar UIs del jugador (opcional, puedes quitar esto si lo quieres)
-    -- for _, gui in pairs(playerGui:GetChildren()) do
-    --     if gui:IsA("ScreenGui") then
-    --         gui:Destroy()
-    --     end
-    -- end
+    -- Eliminar todas las GUIs del jugador
+    for _, gui in pairs(playerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            gui:Destroy()
+        end
+    end
 
-    -- Quitar partículas, excepto en las mascotas
+    -- Quitar partículas
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") and not (petFolder and petFolder:IsAncestorOf(obj)) then
+        if obj:IsA("ParticleEmitter") then
             obj:Destroy()
         end
     end
 
-    -- Quitar luces, excepto en las mascotas
+    -- Quitar luces
     for _, obj in pairs(workspace:GetDescendants()) do
-        if (obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight")) 
-        and not (petFolder and petFolder:IsAncestorOf(obj)) then
+        if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
             obj:Destroy()
         end
     end
@@ -400,11 +398,12 @@ Opti:AddButton("Anti Lag", function()
         end
     end)
 end)
-Farm:AddLabel("----------")
-Farm:AddLabel("")
-Farm:AddLabel("")
-Farm:AddLabel("")
-Farm:AddLabel("-----Secion-----")
+
+Opti:AddLabel("----------")
+Opti:AddLabel("")
+Opti:AddLabel("")
+Opti:AddLabel("")
+Opti:AddLabel("-----Secion-----")
 -- Tiempo de sesión
 local sessionStartTime = tick()
 local sessionLabel = Opti:AddLabel("Tiempo de Sesión: 0d 0h 0m 0s")
@@ -423,8 +422,8 @@ task.spawn(function()
     end
 end)
 
-Farm:AddLabel("")
-Farm:AddLabel("-----AFK-----")
+Opti:AddLabel("")
+Opti:AddLabel("-----AFK-----")
 
 Opti:AddButton("Anti AFK", function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
