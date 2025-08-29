@@ -1,4 +1,28 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sherya-Script-Private/Elerium-V5/refs/heads/main/Library", true))()
+
+-- Anti-AFK System
+local VirtualUser = game:GetService("VirtualUser")
+local antiAFKConnection
+
+local function setupAntiAFK()
+    -- Disconnect previous connection if it exists
+    if antiAFKConnection then
+        antiAFKConnection:Disconnect()
+    end
+    
+    -- Connect to PlayerIdleEvent to prevent AFK kicks
+    antiAFKConnection = player.Idled:Connect(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+        print("Anti-AFK: Prevented idle kick")
+    end)
+    
+    print("Anti-AFK system enabled")
+end
+
+-- Initialize Anti-AFK system
+setupAntiAFK()
+
 local window = library:AddWindow("Sherya Script | Galaxy Hub", {
     main_color = Color3.fromRGB(0, 0, 0),
     min_size = Vector2.new(600, 660),
@@ -328,29 +352,32 @@ Farm:AddSwitch("Auto Eat Egg 30 Minutes", function(state)
     autoEatEnabled = state
 end)
 
+Farm:AddLabel("----------")
 
 Opti:AddButton("Anti Lag", function()
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
     local lighting = game:GetService("Lighting")
+    local petFolder = player:FindFirstChild("petsFolder")
 
-    -- Eliminar todas las GUIs del jugador
-    for _, gui in pairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            gui:Destroy()
-        end
-    end
+    -- No eliminar UIs del jugador (opcional, puedes quitar esto si lo quieres)
+    -- for _, gui in pairs(playerGui:GetChildren()) do
+    --     if gui:IsA("ScreenGui") then
+    --         gui:Destroy()
+    --     end
+    -- end
 
-    -- Quitar partículas
+    -- Quitar partículas, excepto en las mascotas
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") then
+        if obj:IsA("ParticleEmitter") and not (petFolder and petFolder:IsAncestorOf(obj)) then
             obj:Destroy()
         end
     end
 
-    -- Quitar luces
+    -- Quitar luces, excepto en las mascotas
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
+        if (obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight")) 
+        and not (petFolder and petFolder:IsAncestorOf(obj)) then
             obj:Destroy()
         end
     end
@@ -397,254 +424,28 @@ Opti:AddButton("Anti Lag", function()
         end
     end)
 end)
-
--- Variables para el Anti AFK GUI
-local antiAFKActive = false
-local antiAFKConnection = nil
+Farm:AddLabel("----------")
+Farm:AddLabel("")
+Farm:AddLabel("")
+Farm:AddLabel("")
+Farm:AddLabel("-----Secion-----")
+-- Tiempo de sesión
 local sessionStartTime = tick()
-local sheryaGUI = nil
+local sessionLabel = Opti:AddLabel("Tiempo de Sesión: 0d 0h 0m 0s")
+sessionLabel.TextSize = 20
 
--- Función para crear la GUI de monitoreo
-local function createSheryaGUI()
-    -- Eliminar GUI existente si existe
-    if sheryaGUI then
-        sheryaGUI:Destroy()
-        sheryaGUI = nil
-    end
-    
-    local Players = game:GetService("Players")
-    local RunService = game:GetService("RunService")
-    local Stats = game:GetService("Stats")
-    local player = Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-    
-    -- Crear ScreenGui principal
-    sheryaGUI = Instance.new("ScreenGui")
-    sheryaGUI.Name = "Sherya Script"
-    sheryaGUI.Parent = playerGui
-    sheryaGUI.ResetOnSpawn = false
-    sheryaGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
-    -- Frame principal
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Parent = sheryaGUI
-    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Negro
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Position = UDim2.new(0, 10, 0, 10)
-    mainFrame.Size = UDim2.new(0, 250, 0, 120)
-    mainFrame.Active = true
-    mainFrame.Draggable = true -- Hacer la GUI movible
-    
-    -- Esquinas redondeadas
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = mainFrame
-    
-    -- Título
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "Title"
-    titleLabel.Parent = mainFrame
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Position = UDim2.new(0, 0, 0, 0)
-    titleLabel.Size = UDim2.new(1, 0, 0, 25)
-    titleLabel.Font = Enum.Font.SourceSansBold
-    titleLabel.Text = "Sherya Script"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextScaled = true
-    titleLabel.TextWrapped = true
-    
-    -- Ping Label
-    local pingLabel = Instance.new("TextLabel")
-    pingLabel.Name = "Ping"
-    pingLabel.Parent = mainFrame
-    pingLabel.BackgroundTransparency = 1
-    pingLabel.Position = UDim2.new(0, 5, 0, 25)
-    pingLabel.Size = UDim2.new(1, -10, 0, 20)
-    pingLabel.Font = Enum.Font.SourceSans
-    pingLabel.Text = "Ping: 0 ms"
-    pingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    pingLabel.TextScaled = true
-    pingLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    -- FPS Label
-    local fpsLabel = Instance.new("TextLabel")
-    fpsLabel.Name = "FPS"
-    fpsLabel.Parent = mainFrame
-    fpsLabel.BackgroundTransparency = 1
-    fpsLabel.Position = UDim2.new(0, 5, 0, 45)
-    fpsLabel.Size = UDim2.new(1, -10, 0, 20)
-    fpsLabel.Font = Enum.Font.SourceSans
-    fpsLabel.Text = "FPS: 0"
-    fpsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    fpsLabel.TextScaled = true
-    fpsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    -- Session Time Label
-    local sessionLabel = Instance.new("TextLabel")
-    sessionLabel.Name = "SessionTime"
-    sessionLabel.Parent = mainFrame
-    sessionLabel.BackgroundTransparency = 1
-    sessionLabel.Position = UDim2.new(0, 5, 0, 65)
-    sessionLabel.Size = UDim2.new(1, -10, 0, 20)
-    sessionLabel.Font = Enum.Font.SourceSans
-    sessionLabel.Text = "Session: 00:00:00"
-    sessionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sessionLabel.TextScaled = true
-    sessionLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    -- Status Label
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Name = "Status"
-    statusLabel.Parent = mainFrame
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.Position = UDim2.new(0, 5, 0, 85)
-    statusLabel.Size = UDim2.new(1, -10, 0, 20)
-    statusLabel.Font = Enum.Font.SourceSans
-    statusLabel.Text = "Anti-AFK Activo"
-    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    statusLabel.TextScaled = true
-    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    
-    -- Variables para calcular FPS
-    local frameCount = 0
-    local lastTime = tick()
-    local currentFPS = 0
-    
-    -- Función para formatear tiempo
-    local function formatTime(seconds)
-        local hours = math.floor(seconds / 3600)
-        local minutes = math.floor((seconds % 3600) / 60)
-        local secs = math.floor(seconds % 60)
-        return string.format("%02d:%02d:%02d", hours, minutes, secs)
-    end
-    
-    -- Función para actualizar estadísticas
-    local function updateStats()
-        -- Actualizar FPS
-        frameCount = frameCount + 1
-        local currentTime = tick()
-        if currentTime - lastTime >= 1 then
-            currentFPS = frameCount
-            frameCount = 0
-            lastTime = currentTime
-        end
+task.spawn(function()
+    while true do
+        local elapsed = tick() - sessionStartTime
+        local days = math.floor(elapsed / 86400)
+        local hours = math.floor((elapsed % 86400) / 3600)
+        local minutes = math.floor((elapsed % 3600) / 60)
+        local seconds = math.floor(elapsed % 60)
         
-        -- Actualizar Ping
-        local ping = math.round(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-        
-        -- Actualizar tiempo de sesión
-        local sessionTime = tick() - sessionStartTime
-        
-        -- Actualizar labels
-        pingLabel.Text = "Ping: " .. ping .. " ms"
-        fpsLabel.Text = "FPS: " .. currentFPS
-        sessionLabel.Text = "Session: " .. formatTime(sessionTime)
-    end
-    
-    -- Conectar actualización de estadísticas
-    RunService.Heartbeat:Connect(updateStats)
-    
-    return sheryaGUI
-end
-
--- Función para activar Anti-AFK
-local function startAntiAFK()
-    if antiAFKConnection then
-        antiAFKConnection:Disconnect()
-    end
-    
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
-    
-    -- Sistema Anti-AFK mejorado
-    antiAFKConnection = game:GetService("RunService").Heartbeat:Connect(function()
-        -- Movimiento micro para evitar AFK
-        if humanoid and humanoid.Parent then
-            local currentTime = tick()
-            local movement = math.sin(currentTime * 0.1) * 0.01
-            humanoid:Move(Vector3.new(movement, 0, 0), false)
-        end
-    end)
-    
-    -- También activar anti-lag básico
-    local function optimizeGame()
-        -- Reducir calidad gráfica automáticamente
-        local lighting = game:GetService("Lighting")
-        lighting.GlobalShadows = false
-        lighting.Technology = Enum.Technology.Compatibility
-        
-        -- Optimizar workspace
-        workspace.StreamingEnabled = true
-        workspace.StreamingTargetRadius = 100
-        
-        -- Configurar settings para mejor rendimiento
-        settings().Rendering.QualityLevel = "Level01"
-    end
-    
-    optimizeGame()
-end
-
--- Función para detener Anti-AFK
-local function stopAntiAFK()
-    if antiAFKConnection then
-        antiAFKConnection:Disconnect()
-        antiAFKConnection = nil
-    end
-    
-    if sheryaGUI then
-        sheryaGUI:Destroy()
-        sheryaGUI = nil
-    end
-end
-
--- Agregar botón al OP Things folder
-Opti:AddButton("Anti AFK GUI", function()
-    if not antiAFKActive then
-        -- Activar Anti-AFK
-        antiAFKActive = true
-        sessionStartTime = tick() -- Reiniciar tiempo de sesión
-        
-        -- Crear y mostrar GUI
-        createSheryaGUI()
-        
-        -- Iniciar sistema Anti-AFK
-        startAntiAFK()
-        
-        -- Notificación de activación
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Sherya Script";
-            Text = "Anti-AFK activado! GUI de monitoreo visible.";
-            Duration = 5;
-        })
-        
-        print("Anti-AFK y GUI de monitoreo activados")
-        
-    else
-        -- Desactivar Anti-AFK
-        antiAFKActive = false
-        
-        -- Detener sistema
-        stopAntiAFK()
-        
-        -- Notificación de desactivación
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Sherya Script";
-            Text = "Anti-AFK desactivado! GUI cerrada.";
-            Duration = 5;
-        })
-        
-        print("Anti-AFK desactivado")
+        sessionLabel.Text = string.format("Tiempo de Sesión: %dd %dh %dm %ds", days, hours, minutes, seconds)
+        task.wait(1)
     end
 end)
-
--- Agregar información sobre el Anti-AFK
-Opti:AddLabel("Anti-AFK Features:")
-Opti:AddLabel("Previene desconexión por inactividad")
-Opti:AddLabel("Muestra Ping, FPS y tiempo de sesión")
-Opti:AddLabel("GUI movible color morado")
-Opti:AddLabel("Optimización automática del juego")
 
 -- CALCULATOR CORREGIDO (STRENGTH, DURABILITY Y REBIRTHS)
 local strengthStartValue = 0
