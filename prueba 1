@@ -645,3 +645,369 @@ Opti:AddLabel("Previene desconexión por inactividad")
 Opti:AddLabel("Muestra Ping, FPS y tiempo de sesión")
 Opti:AddLabel("GUI movible color morado")
 Opti:AddLabel("Optimización automática del juego")
+
+-- CALCULATOR CORREGIDO (STRENGTH, DURABILITY Y REBIRTHS)
+local strengthStartValue = 0
+local durabilityStartValue = 0
+local rebirthsStartValue = 0
+local strengthStartTime = 0
+local durabilityStartTime = 0
+local rebirthsStartTime = 0
+local strengthActive = false
+local durabilityActive = false
+local rebirthsActive = false
+
+-- Crear folders para Strength, Durability y Rebirths
+local strengthFolder = Calculator:AddFolder("Strength")
+local durabilityFolder = Calculator:AddFolder("Durability")
+local rebirthsFolder = Calculator:AddFolder("Rebirths")
+
+-- Función mejorada para formatear números
+local function formatNumber(num)
+    if num == math.huge then
+        return "∞"
+    elseif num == 0 then
+        return "0"
+    elseif num < 0.01 and num > 0 then
+        return "~0"
+    end
+    
+    local abs = math.abs(num)
+    local sign = num < 0 and "-" or ""
+    
+    if abs >= 1e30 then
+        return sign .. string.format("%.2f", abs / 1e30) .. "No"
+    elseif abs >= 1e27 then
+        return sign .. string.format("%.2f", abs / 1e27) .. "Oc"
+    elseif abs >= 1e24 then
+        return sign .. string.format("%.2f", abs / 1e24) .. "Sp"
+    elseif abs >= 1e21 then
+        return sign .. string.format("%.2f", abs / 1e21) .. "Sx"
+    elseif abs >= 1e18 then
+        return sign .. string.format("%.2f", abs / 1e18) .. "Qt"
+    elseif abs >= 1e15 then
+        return sign .. string.format("%.2f", abs / 1e15) .. "Qd"
+    elseif abs >= 1e12 then
+        return sign .. string.format("%.2f", abs / 1e12) .. "T"
+    elseif abs >= 1e9 then
+        return sign .. string.format("%.2f", abs / 1e9) .. "B"
+    elseif abs >= 1e6 then
+        return sign .. string.format("%.2f", abs / 1e6) .. "M"
+    elseif abs >= 1e3 then
+        return sign .. string.format("%.2f", abs / 1e3) .. "K"
+    else
+        return sign .. string.format("%.2f", abs)
+    end
+end
+
+-- Función para obtener valor actual de estadística
+local function getCurrentStrength()
+    local player = game.Players.LocalPlayer
+    if player and player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Strength") then
+        return player.leaderstats.Strength.Value
+    end
+    return 0
+end
+
+local function getCurrentDurability()
+    local player = game.Players.LocalPlayer
+    if player and player:FindFirstChild("Durability") then
+        return player.Durability.Value
+    end
+    return 0
+end
+
+local function getCurrentRebirths()
+    local player = game.Players.LocalPlayer
+    if player and player:FindFirstChild("leaderstats") and player.leaderstats:FindFirstChild("Rebirths") then
+        return player.leaderstats.Rebirths.Value
+    elseif player and player:FindFirstChild("Rebirths") then
+        return player.Rebirths.Value
+    end
+    return 0
+end
+
+-- Crear labels para Strength
+local strengthLabels = {
+    status = strengthFolder:AddLabel("Status: Presiona Start para comenzar"),
+    current = strengthFolder:AddLabel("Current: 0"),
+    gained = strengthFolder:AddLabel("Gained: 0"),
+    perMinute = strengthFolder:AddLabel("Per Minute: 0"),
+    perHour = strengthFolder:AddLabel("Per Hour: 0"),
+    perDay = strengthFolder:AddLabel("Per Day: 0")
+}
+
+-- Crear labels para Durability
+local durabilityLabels = {
+    status = durabilityFolder:AddLabel("Status: Presiona Start para comenzar"),
+    current = durabilityFolder:AddLabel("Current: 0"),
+    gained = durabilityFolder:AddLabel("Gained: 0"),
+    perMinute = durabilityFolder:AddLabel("Per Minute: 0"),
+    perHour = durabilityFolder:AddLabel("Per Hour: 0"),
+    perDay = durabilityFolder:AddLabel("Per Day: 0")
+}
+
+-- Crear labels para Rebirths
+local rebirthsLabels = {
+    status = rebirthsFolder:AddLabel("Status: Presiona Start para comenzar"),
+    current = rebirthsFolder:AddLabel("Current: 0"),
+    gained = rebirthsFolder:AddLabel("Gained: 0"),
+    perMinute = rebirthsFolder:AddLabel("Per Minute: 0"),
+    perHour = rebirthsFolder:AddLabel("Per Hour: 0"),
+    perDay = rebirthsFolder:AddLabel("Per Day: 0")
+}
+
+-- Función para actualizar labels de Strength
+local function updateStrengthLabels()
+    local currentStrength = getCurrentStrength()
+    local currentTime = tick()
+    
+    strengthLabels.current.Text = "Current: " .. formatNumber(currentStrength)
+    
+    if strengthActive and strengthStartTime > 0 then
+        local timeElapsed = currentTime - strengthStartTime
+        local gained = currentStrength - strengthStartValue
+        
+        strengthLabels.gained.Text = "Gained: " .. formatNumber(gained)
+        
+        if timeElapsed >= 60 then -- Solo calcular después de 1 minuto
+            local perMinute = (gained / timeElapsed) * 60
+            local perHour = perMinute * 60
+            local perDay = perHour * 24
+            
+            strengthLabels.status.Text = "Status:  Activo"
+            strengthLabels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+            strengthLabels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+            strengthLabels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+        else
+            local remaining = 60 - timeElapsed
+            strengthLabels.status.Text = "Status:  Calculando... " .. math.ceil(remaining) .. "s"
+            strengthLabels.perMinute.Text = "Per Minute: Calculando..."
+            strengthLabels.perHour.Text = "Per Hour: Calculando..."
+            strengthLabels.perDay.Text = "Per Day: Calculando..."
+        end
+    else
+        strengthLabels.gained.Text = "Gained: 0"
+        strengthLabels.perMinute.Text = "Per Minute: 0"
+        strengthLabels.perHour.Text = "Per Hour: 0"
+        strengthLabels.perDay.Text = "Per Day: 0"
+    end
+end
+
+-- Función para actualizar labels de Durability
+local function updateDurabilityLabels()
+    local currentDurability = getCurrentDurability()
+    local currentTime = tick()
+    
+    durabilityLabels.current.Text = "Current: " .. formatNumber(currentDurability)
+    
+    if durabilityActive and durabilityStartTime > 0 then
+        local timeElapsed = currentTime - durabilityStartTime
+        local gained = currentDurability - durabilityStartValue
+        
+        durabilityLabels.gained.Text = "Gained: " .. formatNumber(gained)
+        
+        if timeElapsed >= 60 then -- Solo calcular después de 1 minuto
+            local perMinute = (gained / timeElapsed) * 60
+            local perHour = perMinute * 60
+            local perDay = perHour * 24
+            
+            durabilityLabels.status.Text = "Status:  Activo"
+            durabilityLabels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+            durabilityLabels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+            durabilityLabels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+        else
+            local remaining = 60 - timeElapsed
+            durabilityLabels.status.Text = "Status: ⏳ Calculando... " .. math.ceil(remaining) .. "s"
+            durabilityLabels.perMinute.Text = "Per Minute: Calculando..."
+            durabilityLabels.perHour.Text = "Per Hour: Calculando..."
+            durabilityLabels.perDay.Text = "Per Day: Calculando..."
+        end
+    else
+        durabilityLabels.gained.Text = "Gained: 0"
+        durabilityLabels.perMinute.Text = "Per Minute: 0"
+        durabilityLabels.perHour.Text = "Per Hour: 0"
+        durabilityLabels.perDay.Text = "Per Day: 0"
+    end
+end
+
+-- Función para actualizar labels de Rebirths
+local function updateRebirthsLabels()
+    local currentRebirths = getCurrentRebirths()
+    local currentTime = tick()
+    
+    rebirthsLabels.current.Text = "Current: " .. formatNumber(currentRebirths)
+    
+    if rebirthsActive and rebirthsStartTime > 0 then
+        local timeElapsed = currentTime - rebirthsStartTime
+        local gained = currentRebirths - rebirthsStartValue
+        
+        rebirthsLabels.gained.Text = "Gained: " .. formatNumber(gained)
+        
+        if timeElapsed >= 60 then -- Solo calcular después de 1 minuto
+            local perMinute = (gained / timeElapsed) * 60
+            local perHour = perMinute * 60
+            local perDay = perHour * 24
+            
+            rebirthsLabels.status.Text = "Status:  Activo"
+            rebirthsLabels.perMinute.Text = "Per Minute: " .. formatNumber(perMinute)
+            rebirthsLabels.perHour.Text = "Per Hour: " .. formatNumber(perHour)
+            rebirthsLabels.perDay.Text = "Per Day: " .. formatNumber(perDay)
+        else
+            local remaining = 60 - timeElapsed
+            rebirthsLabels.status.Text = "Status:  Calculando... " .. math.ceil(remaining) .. "s"
+            rebirthsLabels.perMinute.Text = "Per Minute: Calculando..."
+            rebirthsLabels.perHour.Text = "Per Hour: Calculando..."
+            rebirthsLabels.perDay.Text = "Per Day: Calculando..."
+        end
+    else
+        rebirthsLabels.gained.Text = "Gained: 0"
+        rebirthsLabels.perMinute.Text = "Per Minute: 0"
+        rebirthsLabels.perHour.Text = "Per Hour: 0"
+        rebirthsLabels.perDay.Text = "Per Day: 0"
+    end
+end
+
+-- Botones de control para Strength
+strengthFolder:AddButton("Start Strength Calculator", function()
+    strengthActive = true
+    strengthStartTime = tick()
+    strengthStartValue = getCurrentStrength()
+    strengthLabels.status.Text = "Status:  Iniciado - Calculando..."
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Strength Calculator iniciado!";
+        Duration = 3;
+    })
+end)
+
+strengthFolder:AddButton("Stop Strength Calculator", function()
+    strengthActive = false
+    strengthStartTime = 0
+    strengthStartValue = 0
+    strengthLabels.status.Text = "Status:  Detenido"
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Strength Calculator detenido!";
+        Duration = 3;
+    })
+end)
+
+-- Botones de control para Durability
+durabilityFolder:AddButton("Start Durability Calculator", function()
+    durabilityActive = true
+    durabilityStartTime = tick()
+    durabilityStartValue = getCurrentDurability()
+    durabilityLabels.status.Text = "Status:  Iniciado - Calculando..."
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Durability Calculator iniciado!";
+        Duration = 3;
+    })
+end)
+
+durabilityFolder:AddButton("Stop Durability Calculator", function()
+    durabilityActive = false
+    durabilityStartTime = 0
+    durabilityStartValue = 0
+    durabilityLabels.status.Text = "Status:  Detenido"
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Durability Calculator detenido!";
+        Duration = 3;
+    })
+end)
+
+-- Botones de control para Rebirths
+rebirthsFolder:AddButton("Start Rebirths Calculator", function()
+    rebirthsActive = true
+    rebirthsStartTime = tick()
+    rebirthsStartValue = getCurrentRebirths()
+    rebirthsLabels.status.Text = "Status:  Iniciado - Calculando..."
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Rebirths Calculator iniciado!";
+        Duration = 3;
+    })
+end)
+
+rebirthsFolder:AddButton("Stop Rebirths Calculator", function()
+    rebirthsActive = false
+    rebirthsStartTime = 0
+    rebirthsStartValue = 0
+    rebirthsLabels.status.Text = "Status:  Detenido"
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Rebirths Calculator detenido!";
+        Duration = 3;
+    })
+end)
+
+-- Botón para reiniciar todos los calculators
+Calculator:AddButton("Reset All Calculators", function()
+    -- Reset Strength
+    strengthActive = false
+    strengthStartTime = 0
+    strengthStartValue = 0
+    strengthLabels.status.Text = "Status: Presiona Start para comenzar"
+    
+    -- Reset Durability
+    durabilityActive = false
+    durabilityStartTime = 0
+    durabilityStartValue = 0
+    durabilityLabels.status.Text = "Status: Presiona Start para comenzar"
+    
+    -- Reset Rebirths
+    rebirthsActive = false
+    rebirthsStartTime = 0
+    rebirthsStartValue = 0
+    rebirthsLabels.status.Text = "Status: Presiona Start para comenzar"
+    
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Calculator";
+        Text = "Todos los calculators han sido reiniciados!";
+        Duration = 3;
+    })
+end)
+
+Calculator:AddLabel("Instrucciones:")
+Calculator:AddLabel("1. Presiona 'Start' en la stat que quieras medir")
+Calculator:AddLabel("2. Espera 1 minuto para ver los cálculos")
+Calculator:AddLabel("3. Los valores se actualizan automáticamente")
+
+-- Loop principal del calculator
+task.spawn(function()
+    while true do
+        updateStrengthLabels()
+        updateDurabilityLabels()
+        updateRebirthsLabels()
+        task.wait(1) -- Actualizar cada segundo
+    end
+end)
+
+print("Calculator completo - Strength, Durability y Rebirths")
+
+creditsTab:AddLabel("╭──────────────────────────╮")
+creditsTab:AddLabel(" Script hecho por Isabella")
+creditsTab:AddLabel("╰──────────────────────────╯")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("User de Roblox: MissSherya")
+creditsTab:AddLabel("Instagram: Sherya_Luck")
+creditsTab:AddLabel("TikTok: Sherya6000")
+creditsTab:AddLabel("Discord: isabella_hrz")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("Thanks por usar el script")
+creditsTab:AddLabel("")
+creditsTab:AddLabel("Recomienda el script para hacer mas actualizaciones")
+creditsTab:AddLabel("Hago peticiones de otros juegos")
+creditsTab:AddLabel("Diviertete amiguito")
+
+creditsTab:AddButton("Servidor Discord", function()
+    setclipboard("https://discord.gg/rnDrhTZZCF")
+end)
