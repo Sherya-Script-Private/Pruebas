@@ -1,24 +1,15 @@
-local Players = game:GetService("Players")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sherya-Script-Private/Elerium-V5/refs/heads/main/Library", true))()
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local VirtualUser = game:GetService("VirtualUser")
-local Player = Players.LocalPlayer
-local muscleEvent = Player:WaitForChild("muscleEvent", 5)
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local startTime = os.time()
+local startRebirths = player.leaderstats.Rebirths.Value
+local displayName = player.DisplayName
 
-local usercolorsURL = "https://raw.githubusercontent.com/lkjhg969/ffdsf/refs/heads/main/usc.lua"
-
-local success, userColors = pcall(function()
-    return loadstring(game:HttpGet(usercolorsURL, true))()
-end)
-
-local mainColor = (success and userColors[Player.Name]) or Color3.fromRGB(138, 0, 0)
-
-local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/lkjhg969/ffdsf/refs/heads/main/hgfhj", true))()
-
-local window = library:AddWindow("Alejandro Farm|Private", {
-    main_color = mainColor,
-    min_size = Vector2.new(170, 0, 170,),
-    can_resize = false,
+local window = library:AddWindow("Sherya Script | Galaxy Hub", {
+    main_color = Color3.fromRGB(75, 0, 130),
+    min_size = Vector2.new(500, 500),
+    can_resize = true,
 })
 
 local antiAFKConnection
