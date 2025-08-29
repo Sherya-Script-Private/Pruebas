@@ -1,7 +1,7 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sherya-Script-Private/Elerium-V5/refs/heads/main/Library", true))()
 local window = library:AddWindow("Sherya Script | Galaxy Hub", {
     main_color = Color3.fromRGB(0, 0, 0),
-    min_size = Vector2.new(600, 660),
+    min_size = Vector2.new(550, 550),
     can_resize = true,
 })
 
@@ -266,7 +266,7 @@ Farm:AddSwitch("Lock Position", function(Value)
     end
 end)
 
-Farm:AddLabel("")
+Farm:AddLabel("---------------------------")
 Farm:AddLabel("-----Fast Strength OP-----")
 
 fastStrengthToggle = Farm:AddSwitch("Pack Farm | Fast Strength", function(state)
@@ -328,7 +328,8 @@ Farm:AddSwitch("Auto Eat Egg 30 Minutes", function(state)
     autoEatEnabled = state
 end)
 
-Opti:AddLabel("----------")
+Opti:AddLabel("")
+Opti:AddLabel("Anti Lag OP")
 
 Opti:AddButton("Anti Lag", function()
     local player = game.Players.LocalPlayer
@@ -399,9 +400,6 @@ Opti:AddButton("Anti Lag", function()
     end)
 end)
 
-Opti:AddLabel("----------")
-Opti:AddLabel("")
-Opti:AddLabel("")
 Opti:AddLabel("")
 Opti:AddLabel("-----Secion-----")
 -- Tiempo de sesión
