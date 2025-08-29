@@ -528,7 +528,7 @@ local function stopAntiAFK()
 end
 
 -- Agregar botón al OP Things folder
-opThingsFolder:AddButton("Anti AFK GUI", function()
+Opti:AddButton("Anti AFK GUI", function()
     if not antiAFKActive then
         -- Activar Anti-AFK
         antiAFKActive = true
