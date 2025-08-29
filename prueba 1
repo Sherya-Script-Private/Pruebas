@@ -103,13 +103,12 @@ end
 -- GUI INTERFAZ (usa tu sistema de UI aquí)
 -- Aquí asumo que `Farm` es un tab ya creado en tu sistema de UI
 
+Farm:AddLabel("-----Fast Rebirth OP-----")
+
 Farm:AddTextBox("Target Rebirth Amount", function(text)
     local num = tonumber(text)
     targetRebirth = num or math.huge
 end)
-
-Farm:AddLabel("")
-Farm:AddLabel("-----Fast Rebirth OP-----")
 
 targetPackToggle = Farm:AddSwitch("Pack Farm | Rebirth Target", function(state)
     packFarmTarget = state
@@ -249,6 +248,8 @@ infinitePackToggle = Farm:AddSwitch("Pack Farm | Fast Rebirth", function(state)
     end
 end)
 
+Farm:AddLabel("-----Extra-----")
+
 Farm:AddSwitch("Lock Position", function(Value)
     if Value then
         local currentPos = game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame
@@ -321,9 +322,80 @@ task.spawn(function()
     end
 end)
 
+Farm:AddLabel("-----Extra-----")
 -- Switches y botones corregidos para FarmTab
 Farm:AddSwitch("Auto Eat Egg 30 Minutes", function(state)
     autoEatEnabled = state
+end)
+
+
+Opti:AddButton("Anti Lag", function()
+    local player = game.Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    local lighting = game:GetService("Lighting")
+
+    -- Eliminar todas las GUIs del jugador
+    for _, gui in pairs(playerGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            gui:Destroy()
+        end
+    end
+
+    -- Quitar partículas
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") then
+            obj:Destroy()
+        end
+    end
+
+    -- Quitar luces
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
+            obj:Destroy()
+        end
+    end
+
+    -- Eliminar cielos existentes
+    for _, v in pairs(lighting:GetChildren()) do
+        if v:IsA("Sky") then
+            v:Destroy()
+        end
+    end
+
+    -- Crear cielo oscuro
+    local darkSky = Instance.new("Sky")
+    darkSky.Name = "DarkSky"
+    darkSky.SkyboxBk = "rbxassetid://0"
+    darkSky.SkyboxDn = "rbxassetid://0"
+    darkSky.SkyboxFt = "rbxassetid://0"
+    darkSky.SkyboxLf = "rbxassetid://0"
+    darkSky.SkyboxRt = "rbxassetid://0"
+    darkSky.SkyboxUp = "rbxassetid://0"
+    darkSky.Parent = lighting
+
+    lighting.Brightness = 0
+    lighting.ClockTime = 0
+    lighting.TimeOfDay = "00:00:00"
+    lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    lighting.Ambient = Color3.new(0, 0, 0)
+    lighting.FogColor = Color3.new(0, 0, 0)
+    lighting.FogEnd = 100
+
+    -- Refuerzo periódico del anti-lag
+    task.spawn(function()
+        while true do
+            wait(5)
+            if not lighting:FindFirstChild("DarkSky") then
+                darkSky:Clone().Parent = lighting
+            end
+            lighting.Brightness = 0
+            lighting.ClockTime = 0
+            lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+            lighting.Ambient = Color3.new(0, 0, 0)
+            lighting.FogColor = Color3.new(0, 0, 0)
+            lighting.FogEnd = 100
+        end
+    end)
 end)
 
 -- Variables para el Anti AFK GUI
@@ -348,7 +420,7 @@ local function createSheryaGUI()
     
     -- Crear ScreenGui principal
     sheryaGUI = Instance.new("ScreenGui")
-    sheryaGUI.Name = "SheryaScript"
+    sheryaGUI.Name = "Sherya Script"
     sheryaGUI.Parent = playerGui
     sheryaGUI.ResetOnSpawn = false
     sheryaGUI.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -357,7 +429,7 @@ local function createSheryaGUI()
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Parent = sheryaGUI
-    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Negro oscuro
+    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Negro
     mainFrame.BorderSizePixel = 0
     mainFrame.Position = UDim2.new(0, 10, 0, 10)
     mainFrame.Size = UDim2.new(0, 250, 0, 120)
@@ -567,71 +639,9 @@ Opti:AddButton("Anti AFK GUI", function()
     end
 end)
 
-Opti:AddButton("Anti Lag", function()
-    local player = game.Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-    local lighting = game:GetService("Lighting")
-
-    -- Eliminar todas las GUIs del jugador
-    for _, gui in pairs(playerGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            gui:Destroy()
-        end
-    end
-
-    -- Quitar partículas
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("ParticleEmitter") then
-            obj:Destroy()
-        end
-    end
-
-    -- Quitar luces
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("PointLight") or obj:IsA("SpotLight") or obj:IsA("SurfaceLight") then
-            obj:Destroy()
-        end
-    end
-
-    -- Eliminar cielos existentes
-    for _, v in pairs(lighting:GetChildren()) do
-        if v:IsA("Sky") then
-            v:Destroy()
-        end
-    end
-
-    -- Crear cielo oscuro
-    local darkSky = Instance.new("Sky")
-    darkSky.Name = "DarkSky"
-    darkSky.SkyboxBk = "rbxassetid://0"
-    darkSky.SkyboxDn = "rbxassetid://0"
-    darkSky.SkyboxFt = "rbxassetid://0"
-    darkSky.SkyboxLf = "rbxassetid://0"
-    darkSky.SkyboxRt = "rbxassetid://0"
-    darkSky.SkyboxUp = "rbxassetid://0"
-    darkSky.Parent = lighting
-
-    lighting.Brightness = 0
-    lighting.ClockTime = 0
-    lighting.TimeOfDay = "00:00:00"
-    lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-    lighting.Ambient = Color3.new(0, 0, 0)
-    lighting.FogColor = Color3.new(0, 0, 0)
-    lighting.FogEnd = 100
-
-    -- Refuerzo periódico del anti-lag
-    task.spawn(function()
-        while true do
-            wait(5)
-            if not lighting:FindFirstChild("DarkSky") then
-                darkSky:Clone().Parent = lighting
-            end
-            lighting.Brightness = 0
-            lighting.ClockTime = 0
-            lighting.OutdoorAmbient = Color3.new(0, 0, 0)
-            lighting.Ambient = Color3.new(0, 0, 0)
-            lighting.FogColor = Color3.new(0, 0, 0)
-            lighting.FogEnd = 100
-        end
-    end)
-end)
+-- Agregar información sobre el Anti-AFK
+Opti:AddLabel("Anti-AFK Features:")
+Opti:AddLabel("Previene desconexión por inactividad")
+Opti:AddLabel("Muestra Ping, FPS y tiempo de sesión")
+Opti:AddLabel("GUI movible color morado")
+Opti:AddLabel("Optimización automática del juego")
