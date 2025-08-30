@@ -1,5 +1,4 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sherya-Script-Private/Elerium-V5/refs/heads/main/Library", true))()
-
 local window = library:AddWindow("Sherya Script | Galaxy Hub", {
     main_color = Color3.fromRGB(0, 0, 0),
     min_size = Vector2.new(550, 550),
