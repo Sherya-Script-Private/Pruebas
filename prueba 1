@@ -255,320 +255,133 @@ autoJoinBrawl:OnChanged(function(state)
     end
 end)
 
+Tabs.Main:AddSection("Jungle Gym")
 
-Tabs.Home:AddSection("Local Player Configurations")
+-- Cache services for faster access
+local VIM = game:GetService("VirtualInputManager")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-local timeDropdown = Tabs.Home:AddDropdown("ChangeTime", {
-    Title = "Change Time",
-    Values = {"Night", "Day", "Midnight"},
-    Default = "Day",
-    Callback = function(selection)
-        local lighting = game:GetService("Lighting")
-
-        if selection == "Night" then
-            lighting.ClockTime = 0
-        elseif selection == "Day" then
-            lighting.ClockTime = 12
-        elseif selection == "Midnight" then
-            lighting.ClockTime = 6
-        end
-    end
-})
-
-local Toggle = Tabs.Killing:CreateToggle("AutoPunchNoAnim", {Title = "Auto Punch (No Anim)", Default = false})
-Toggle:OnChanged(function(state)
-    while state and Toggle.Value do
-        local player = game.Players.LocalPlayer
-        local char = game.Workspace:FindFirstChild(player.Name)
-        local punchTool = player.Backpack:FindFirstChild("Punch") or (char and char:FindFirstChild("Punch"))
-
-        if punchTool then
-            if punchTool.Parent ~= char then
-                punchTool.Parent = char -- Equip
-            end
-
-            player.muscleEvent:FireServer("punch", "rightHand")
-            player.muscleEvent:FireServer("punch", "leftHand")
-        else
-            warn("Punch tool not found")
-            Toggle:SetValue(false) -- Stop if tool not found
-        end
-        task.wait()
-    end
-end)
-
--- Speed Punch Button
-Tabs.Killing:CreateButton({
-    Title = "Fast Punch",
-    Callback = function()
-        local player = game.Players.LocalPlayer
-        local punch = player.Backpack:FindFirstChild("Punch") or (game.Workspace:FindFirstChild(player.Name) and game.Workspace[player.Name]:FindFirstChild("Punch"))
-        if punch and punch:FindFirstChild("attackTime") then
-            punch.attackTime.Value = 0.065
-        end
-    end
-})
-
--- Normal Punch Button
-Tabs.Killing:CreateButton({
-    Title = "Normal Punch",
-    Callback = function()
-        local player = game.Players.LocalPlayer
-        local punch = player.Backpack:FindFirstChild("Punch") or (game.Workspace:FindFirstChild(player.Name) and game.Workspace[player.Name]:FindFirstChild("Punch"))
-        if punch and punch:FindFirstChild("attackTime") then
-            punch.attackTime.Value = 0.35
-        end
-    end
-})
-
-	-- Whitelist Table
-local whitelist = {}
-local playerList = {}
-
--- Create Dropdown
-local Dropdown = Tabs.Killing:AddDropdown("WhitelistDropdown", {
-    Title = "Whitelist Player(s)",
-    Values = {},
-    Multi = true,
-    Default = {},
-})
-
--- Populate initially
-for _, player in ipairs(game.Players:GetPlayers()) do
-    table.insert(playerList, player.Name)
+-- Helper functions for Jungle Gym
+local function pressE()
+    VIM:SendKeyEvent(true, "E", false, game)
+    task.wait(0.1)
+    VIM:SendKeyEvent(false, "E", false, game)
 end
-Dropdown:SetValues(playerList)
 
--- Update on PlayerAdded
-game.Players.PlayerAdded:Connect(function(player)
-    table.insert(playerList, player.Name)
-    Dropdown:SetValues(playerList)
-end)
-
--- Update on PlayerRemoving
-game.Players.PlayerRemoving:Connect(function(player)
-    for i, name in ipairs(playerList) do
-        if name == player.Name then
-            table.remove(playerList, i)
-            break
-        end
+local function autoLift()
+    while getgenv().working do
+        LocalPlayer.muscleEvent:FireServer("rep")
+        task.wait() -- More efficient than task.wait(0) or task.wait(small number)
     end
-    Dropdown:SetValues(playerList)
-end)
+end
 
--- Sync whitelist
-Dropdown:OnChanged(function(selectedPlayers)
-    table.clear(whitelist)
-    for _, name in ipairs(selectedPlayers) do
-        whitelist[name] = true
-    end
-    print("Whitelisted:", selectedPlayers)
-end)
-
-local AutokillToggle = Tabs.Killing:CreateToggle("AutoKill", {Title = "Auto Kill", Default = false})
-AutokillToggle:OnChanged(function(state)
-    while state and AutokillToggle.Value do
-        local player = game.Players.LocalPlayer
-
-        -- Auto punch setup
-        local punch = player.Backpack:FindFirstChild("Punch") or (player.Character and player.Character:FindFirstChild("Punch"))
-        if punch and punch:FindFirstChild("attackTime") then
-            punch.attackTime.Value = 0.065
-        end
-
-        -- Auto kill logic
-        for _, target in ipairs(game.Players:GetPlayers()) do
-            if target ~= player and not whitelist[target.Name] then
-                local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-                local rHand = player.Character and player.Character:FindFirstChild("RightHand")
-                local lHand = player.Character and player.Character:FindFirstChild("LeftHand")
-
-                if root and rHand and lHand then
-                    firetouchinterest(rHand, root, 1)
-                    firetouchinterest(lHand, root, 1)
-                    firetouchinterest(rHand, root, 0)
-                    firetouchinterest(lHand, root, 0)
-                end
-            end
-        end
-
+local function teleportAndStart(machineName, position)
+    local character = LocalPlayer.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = position
         task.wait(0.1)
-    end
-end)
-
--- Target Kill
--- Target Kill (Dropdown en lugar de Input)
-local targetPlayerName = nil
-
--- Dropdown dinámico
-local targetPlayerList = {}
-local TargetDropdown = Tabs.Killing:AddDropdown("TargetPlayerDropdown", {
-    Title = "Target Player",
-    Values = {},
-    Multi = false, -- solo uno
-    Default = {}
-})
-
--- Llenar inicialmente
-for _, player in ipairs(game.Players:GetPlayers()) do
-    table.insert(targetPlayerList, player.Name)
-end
-TargetDropdown:SetValues(targetPlayerList)
-
--- Actualizar al entrar jugador
-game.Players.PlayerAdded:Connect(function(player)
-    table.insert(targetPlayerList, player.Name)
-    TargetDropdown:SetValues(targetPlayerList)
-end)
-
--- Actualizar al salir jugador
-game.Players.PlayerRemoving:Connect(function(player)
-    for i, name in ipairs(targetPlayerList) do
-        if name == player.Name then
-            table.remove(targetPlayerList, i)
-            break
-        end
-    end
-    TargetDropdown:SetValues(targetPlayerList)
-end)
-
--- Guardar el jugador seleccionado
-TargetDropdown:OnChanged(function(selected)
-    targetPlayerName = selected
-    print("Target set to:", targetPlayerName)
-end)
-
--- Auto Kill Target
-local Toggle = Tabs.Killing:CreateToggle("AutoKillTarget", {Title = "Auto Kill Player", Default = false})
-Toggle:OnChanged(function(state)
-    while state and Toggle.Value do
-        local player = game.Players.LocalPlayer
-        local target = game.Players:FindFirstChild(targetPlayerName)
-
-        if target and target ~= player then
-            local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-            local rHand = player.Character and player.Character:FindFirstChild("RightHand")
-            local lHand = player.Character and player.Character:FindFirstChild("LeftHand")
-
-            if root and rHand and lHand then
-                firetouchinterest(rHand, root, 1)
-                firetouchinterest(lHand, root, 1)
-                firetouchinterest(rHand, root, 0)
-                firetouchinterest(lHand, root, 0)
-            end
-        end
-        task.wait(0.1)
-    end
-end)
-
--- Spectate Player (Dropdown + Botón de volver)
-local spectateTarget = nil
-local spectatePlayerList = {}
-local Camera = workspace.CurrentCamera
-local LocalPlayer = game.Players.LocalPlayer
-
--- Dropdown
-local SpectateDropdown = Tabs.Killing:AddDropdown("SpectateDropdown", {
-    Title = "Spectate Player",
-    Values = {},
-    Multi = false,
-    Default = {}
-})
-
--- Llenar inicialmente con nombres
-for _, player in ipairs(game.Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        table.insert(spectatePlayerList, player.Name)
+        pressE()
+        task.spawn(autoLift) -- Use task.spawn to prevent UI freezing
     end
 end
-SpectateDropdown:SetValues(spectatePlayerList)
 
--- Actualizar al entrar
-game.Players.PlayerAdded:Connect(function(player)
-    if player ~= LocalPlayer then
-        table.insert(spectatePlayerList, player.Name)
-        SpectateDropdown:SetValues(spectatePlayerList)
-    end
-end)
-
--- Actualizar al salir
-game.Players.PlayerRemoving:Connect(function(player)
-    for i, name in ipairs(spectatePlayerList) do
-        if name == player.Name then
-            table.remove(spectatePlayerList, i)
-            break
-        end
-    end
-    SpectateDropdown:SetValues(spectatePlayerList)
-
-    if spectateTarget == player.Name then
-        spectateTarget = nil
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then
-            Camera.CameraSubject = hum
-        end
-    end
-end)
-
--- Guardar seleccionado
-SpectateDropdown:OnChanged(function(selected)
-    spectateTarget = selected
-    print("Spectating:", spectateTarget or "None")
-end)
-
--- Botón para volver a ti
-Tabs.Killing:CreateButton({
-    Title = "Dejar de Espectear",
-    Callback = function()
-        spectateTarget = nil
-        local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-        if hum then
-            Camera.CameraSubject = hum
-        end
-        print("Stopped spectating, returned to self")
-    end
-})
-
--- Seguir al jugador
-game:GetService("RunService").RenderStepped:Connect(function()
-    if spectateTarget then
-        local target = game.Players:FindFirstChild(spectateTarget)
-        if target and target.Character then
-            local hum = target.Character:FindFirstChild("Humanoid")
-            if hum then
-                Camera.CameraSubject = hum
-            end
-        end
-    end
-end)
-
--- Teleport / Follow Player
-local followTarget = nil
-local following = false
-local Camera = workspace.CurrentCamera
-local LocalPlayer = game.Players.LocalPlayer
-
--- God Mode (Brawl)
-local godModeToggle = Tabs.Killing:CreateToggle("GodModeBrawl", {
-    Title = "God Mode (Brawl)",
+-- 💪 Auto Bench Press
+local BenchPress = Tabs.Main:CreateToggle("autoBenchPress", {
+    Title = "Auto Bench Press",
     Default = false
 })
 
-godModeToggle:OnChanged(function(State)
-    if State then
-        task.spawn(function()
-            while godModeToggle.Value do
-                game:GetService("ReplicatedStorage").rEvents.brawlEvent:FireServer("joinBrawl")
-                task.wait(0) -- spam constante
-            end
-        end)
+-- Estado global
+getgenv().working = false
+
+-- Cuando cambie el toggle
+BenchPress:OnChanged(function(state)
+    if getgenv().working and not state then
+        -- Si estaba activo y se desactiva
+        getgenv().working = false
+        return
+    end
+
+    getgenv().working = state
+    if state then
+        -- Aquí va tu función para teletransportar y empezar el bench
+        teleportAndStart("Bench Press", CFrame.new(-8173, 64, 1898))
+    end
+end)
+
+-- 💪 Auto Squat
+local jungleSquat = Tabs.Main:CreateToggle("autoSquat", {
+    Title = "Auto Squat",
+    Default = false
+})
+
+-- Estado global
+getgenv().working = false
+
+-- Cuando cambie el toggle
+jungleSquat:OnChanged(function(state)
+    if getgenv().working and not state then
+        -- Si estaba activo y lo apagan
+        getgenv().working = false
+        return
+    end
+
+    getgenv().working = state
+    if state then
+        -- Ejecuta la función al activarse
+        teleportAndStart("Squat", CFrame.new(-8352, 34, 2878))
+    end
+end)
+
+-- 🪨 Auto Boulder
+local jungleBoulder = Tabs.Main:CreateToggle("autoBoulder", {
+    Title = "Auto Boulder",
+    Default = false
+})
+
+-- Estado global solo para Boulder
+getgenv().autoBoulder = false
+
+-- Cuando cambie el toggle
+jungleBoulder:OnChanged(function(state)
+    if getgenv().autoBoulder and not state then
+        -- Si estaba activo y lo apagan
+        getgenv().autoBoulder = false
+        return
+    end
+
+    getgenv().autoBoulder = state
+    if state then
+        -- Teletransporta y empieza el Boulder
+        teleportAndStart("Boulder", CFrame.new(-8621, 34, 2684))
     end
 end)
 
 
-Tabs.Killing:CreateButton({
-    Title = "Activar pegar muerto",
-    Callback = function()
-        loadstring(game:HttpGet("pon aca tu raw del pegar muerto "))()
+-- Estado global
+getgenv().working = false
+
+-- Cuando cambie el toggle
+junglePullUp:OnChanged(function(state)
+    if getgenv().working and not state then
+        -- Si estaba activo y lo apagaron
+        getgenv().working = false
+        return
     end
+
+    getgenv().working = state
+    if state then
+        -- Teletransporta y empieza el Pull Up
+        teleportAndStart("Pull Up", CFrame.new(-8666, 34, 2070))
+    end
+end)
+
+-- 💪 Auto Boulder
+local jungleBoulder = Tabs.Main:CreateToggle("autoBoulder", {
+    Title = "Auto Boulder",
+    Default = false
 })
+
+Tabs.Main:AddSection("Auto Gyms")
+
