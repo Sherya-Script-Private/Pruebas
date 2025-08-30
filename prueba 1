@@ -1,40 +1,5 @@
 local library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Sherya-Script-Private/Elerium-V5/refs/heads/main/Library", true))()
 
-local antiAFKConnection
-local function setupAntiAFK()
-    if antiAFKConnection then
-        antiAFKConnection:Disconnect()
-    end
-    antiAFKConnection =
-        player.Idled:Connect(
-        function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new())
-        end
-    )
-end
-setupAntiAFK()
-
-local function removePortals()
-    for _, portal in pairs(game:GetDescendants()) do
-        if portal.Name == "RobloxForwardPortals" then
-            portal:Destroy()
-        end
-    end
-    if _G.AdRemovalConnection then
-        _G.AdRemovalConnection:Disconnect()
-    end
-    _G.AdRemovalConnection =
-        game.DescendantAdded:Connect(
-        function(descendant)
-            if descendant.Name == "RobloxForwardPortals" then
-                descendant:Destroy()
-            end
-        end
-    )
-end
-removePortals()
-
 local window = library:AddWindow("Sherya Script | Galaxy Hub", {
     main_color = Color3.fromRGB(0, 0, 0),
     min_size = Vector2.new(550, 550),
