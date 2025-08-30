@@ -63,8 +63,8 @@ Library:Notify{
 Tabs.Main:AddSection("Discord Server Link")
 
 Tabs.Main:CreateButton({
-    Title = "Click to Copy Link",
-    Description = "This allows you to join our Discord server and get update pings and more.",
+    Title = "Discord Server",
+    Description = "Join our Discord server for support and updates!",
     Callback = function()
         Window:Dialog({
             Title = "Join Our Discord",
@@ -358,30 +358,258 @@ jungleBoulder:OnChanged(function(state)
     end
 end)
 
+-- 💪 Auto Pull Up
+local junglePullUp = Tabs.Main:CreateToggle("autoPullUp", {
+    Title = "Auto Pull Up",
+    Default = false
+})
 
--- Estado global
-getgenv().working = false
+-- Estado global solo para Pull Up
+getgenv().autoPullUp = false
 
 -- Cuando cambie el toggle
 junglePullUp:OnChanged(function(state)
-    if getgenv().working and not state then
+    if getgenv().autoPullUp and not state then
         -- Si estaba activo y lo apagaron
-        getgenv().working = false
+        getgenv().autoPullUp = false
         return
     end
 
-    getgenv().working = state
+    getgenv().autoPullUp = state
     if state then
         -- Teletransporta y empieza el Pull Up
         teleportAndStart("Pull Up", CFrame.new(-8666, 34, 2070))
     end
 end)
 
--- 💪 Auto Boulder
+-- 🪨 Auto Boulder
 local jungleBoulder = Tabs.Main:CreateToggle("autoBoulder", {
     Title = "Auto Boulder",
     Default = false
 })
 
+-- Estado global solo para Boulder
+getgenv().autoBoulder = false
+
+-- Cuando cambie el toggle
+jungleBoulder:OnChanged(function(state)
+    if getgenv().autoBoulder and not state then
+        -- Si estaba activo y lo apagaron
+        getgenv().autoBoulder = false
+        return
+    end
+
+    getgenv().autoBoulder = state
+    if state then
+        -- Teletransporta y empieza el Boulder
+        teleportAndStart("Boulder", CFrame.new(-8621, 34, 2684))
+    end
+end)
+
 Tabs.Main:AddSection("Auto Gyms")
 
+-- 📌 Posiciones de cada ejercicio en cada gimnasio
+local workoutPositions = {
+    ["Bench Press"] = {
+        ["Eternal Gym"] = CFrame.new(-7176.19141, 45.394104, -1106.31421),
+        ["Legend Gym"] = CFrame.new(4111.91748, 1020.46674, -3799.97217),
+        ["Muscle King Gym"] = CFrame.new(-8590.06152, 46.0167427, -6043.34717)
+    },
+    ["Squat"] = {
+        ["Eternal Gym"] = CFrame.new(-7176.19141, 45.394104, -1106.31421),
+        ["Legend Gym"] = CFrame.new(4304.99023, 987.829956, -4124.2334),
+        ["Muscle King Gym"] = CFrame.new(-8940.12402, 13.1642084, -5699.13477)
+    },
+    ["Deadlift"] = {
+        ["Eternal Gym"] = CFrame.new(-7176.19141, 45.394104, -1106.31421),
+        ["Legend Gym"] = CFrame.new(4304.99023, 987.829956, -4124.2334),
+        ["Muscle King Gym"] = CFrame.new(-8940.12402, 13.1642084, -5699.13477)
+    },
+    ["Pull Up"] = {
+        ["Eternal Gym"] = CFrame.new(-7176.19141, 45.394104, -1106.31421),
+        ["Legend Gym"] = CFrame.new(4304.99023, 987.829956, -4124.2334),
+        ["Muscle King Gym"] = CFrame.new(-8940.12402, 13.1642084, -5699.13477)
+    }
+}
+
+-- Lista de ejercicios
+local workoutTypes = { "Bench Press", "Squat", "Deadlift", "Pull Up" }
+
+-- Lista de gimnasios
+local gymLocations = { "Eternal Gym", "Legend Gym", "Muscle King Gym" }
+
+-- Traducciones al español para UI
+local workoutTranslations = {
+    ["Bench Press"] = "Bench Press",
+    ["Squat"] = "Sentadillas",
+    ["Deadlift"] = "Peso Muerto",
+    ["Pull Up"] = "Dominadas"
+}
+
+-- Guardar referencias de toggles
+local gymToggles = {}
+
+-- Función segura para teletransportar
+local function safeTeleport(workoutType, gym)
+    local pos = workoutPositions[workoutType] and workoutPositions[workoutType][gym]
+    if pos then
+        teleportAndStart(workoutType, pos)
+    else
+        warn("No se encontró posición para " .. workoutType .. " en " .. gym)
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "Error",
+            Text = "No se encontró posición para " .. workoutType .. " en " .. gym,
+            Duration = 5
+        })
+    end
+end
+
+-- Crear dropdowns y toggles
+for _, workoutType in ipairs(workoutTypes) do
+    local spanishWorkoutName = workoutTranslations[workoutType]
+
+    -- Inicializar variable global para dropdown
+    local defaultGym = gymLocations[1]
+    _G["selected" .. string.gsub(workoutType, " ", "") .. "Gym"] = defaultGym
+
+    -- Crear dropdown
+    local dropdown = Tabs.Main:CreateDropdown(workoutType .. "GymDropdown", {
+        Title = spanishWorkoutName .. " - Gimnasio",
+        Values = gymLocations,
+        Multi = false,
+        Default = defaultGym
+    })
+
+    dropdown:OnChanged(function(selected)
+        _G["selected" .. string.gsub(workoutType, " ", "") .. "Gym"] = selected
+    end)
+
+    -- Crear toggle
+    local toggle = Tabs.Main:CreateToggle(workoutType .. "GymToggle", {
+        Title = "Auto " .. spanishWorkoutName,
+        Default = false,
+        Description = "Se teletransporta y entrena automáticamente en el gimnasio seleccionado"
+    })
+
+    toggle:OnChanged(function(state)
+        getgenv()["auto" .. string.gsub(workoutType, " ", "")] = state
+
+        if state then
+            local selectedGym = _G["selected" .. string.gsub(workoutType, " ", "") .. "Gym"]
+            
+            -- Apagar otros toggles
+            for otherType, otherToggle in pairs(gymToggles) do
+                if otherType ~= workoutType and otherToggle then
+                    otherToggle:Set(false)
+                    getgenv()["auto" .. string.gsub(otherType, " ", "")] = false
+                end
+            end
+
+            -- Teletransportar
+            safeTeleport(workoutType, selectedGym)
+        end
+    end)
+
+    -- Guardar toggle
+    gymToggles[workoutType] = toggle
+end
+
+Tabs.Main:AddSection("Auto Snacks")
+
+-- 🍽 Auto Snacks
+local Autosnacks = Tabs.Main:CreateToggle("autoSnacks", {
+    Title = "Auto Snacks",
+    Default = false,
+    Description = "Come automáticamente todos los boosts del inventario"
+})
+
+-- Estado global del toggle
+getgenv().autoEatBoostsEnabled = false
+
+local boostsList = {
+    "ULTRA Shake",
+    "TOUGH Bar",
+    "Protein Shake",
+    "Energy Shake",
+    "Protein Bar",
+    "Energy Bar",
+    "Tropical Shake"
+}
+
+-- Función para comer todos los boosts
+local function eatAllBoosts()
+    local player = game.Players.LocalPlayer
+    local backpack = player:WaitForChild("Backpack")
+    local character = player.Character or player.CharacterAdded:Wait()
+
+    for _, boostName in ipairs(boostsList) do
+        local boost = backpack:FindFirstChild(boostName)
+        while boost do
+            boost.Parent = character
+            pcall(function()
+                boost:Activate()
+            end)
+            task.wait(0.1)
+            boost = backpack:FindFirstChild(boostName)
+        end
+    end
+end
+
+-- Conectar el toggle
+Autosnacks:OnChanged(function(state)
+    getgenv().autoEatBoostsEnabled = state
+end)
+
+-- Loop seguro para comer boosts automáticamente
+task.spawn(function()
+    while true do
+        if getgenv().autoEatBoostsEnabled then
+            pcall(eatAllBoosts)
+            task.wait(2)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- 🥚 Auto Protein Egg cada 30 minutos
+local Autossnacks = Tabs.Main:CreateToggle("autoProteinEgg", {
+    Title = "Auto Egg 30 Minuts",
+    Default = false,
+    Description = "Come un huevo x2 de fuerza cada 30 minutos"
+})
+
+-- Estado global controlado por el toggle
+getgenv().autoEatEnabled = false
+
+-- Función para comer el huevo de proteína
+local function eatProteinEgg()
+    local player = game.Players.LocalPlayer
+    local backpack = player:WaitForChild("Backpack")
+    local character = player.Character or player.CharacterAdded:Wait()
+
+    local egg = backpack:FindFirstChild("Protein Egg")
+    if egg then
+        egg.Parent = character
+        pcall(function()
+            egg:Activate()
+        end)
+    end
+end
+
+-- Conectar toggle
+Autossnacks:OnChanged(function(state)
+    getgenv().autoEatEnabled = state
+end)
+
+-- Loop seguro para comer huevo cada 30 minutos
+task.spawn(function()
+    while true do
+        if getgenv().autoEatEnabled then
+            pcall(eatProteinEgg)
+            task.wait(1800) -- 30 minutos
+        else
+            task.wait(1)
+        end
+    end
+end)
